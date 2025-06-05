@@ -1,6 +1,11 @@
-const {test, describe} = require('node:test')
-const assert = require('node:assert')
-const listHelper = require('../list_helper')
+const { test, describe, before, after } = require('node:test')
+const assert = require('node:assert/strict')
+const mongoose = require('mongoose')
+const supertest = require('supertest')
+const app = require('../../app')
+const Blog = require('../../models/blog')
+
+const api = supertest(app)
 
 test('dummy returns one', () => {
     const blogs = []
@@ -252,13 +257,6 @@ describe('most liked', () => {
 })
 
 describe('Blog List Tests, step 1', () => {
-  const { test, after } = require('node:test')
-const mongoose = require('mongoose')
-const supertest = require('supertest')
-const app = require('../../app')
-
-const api = supertest(app)
-
 test('blogs returned as json', async () => {
   await api
     .get('/api/blogs')
@@ -266,32 +264,67 @@ test('blogs returned as json', async () => {
     .expect('Content-Type', /application\/json/)
 })
 
-after(async () => {
-  await mongoose.connection.close()
-})
-
 })
 
 describe('Blog List Tests, step 2', () => {
-  const { test, after } = require('node:test')
-  const mongoose = require('mongoose');
-  const supertest = require('supertest')
-  const app = require('../../app')
-  const api = supertest(app)
-
-  test.only('blog posts have a field name id instead of _id', async() => {
-    const response = await 
-    api.get('/api/blogs')
+  test('blog posts have a field name id instead of _id', async() => {
+    const response = await api
+       .get('/api/blogs')
        .expect(200).expect('Content-Type', /application\/json/)
 
        const blogs = response.body
        blogs.forEach(blog => {
         assert.ok(blog.id !== undefined, 'blog.id should be defined')
+        // passes only if blog.id is not undefined
         assert.strictEqual(blog._id, undefined, 'blog._id should be undefined')
+        // passes only if blog._id === undefined
+        //this checks that the original MongoDB field _id is gone.
 
        })
 })
-after(async () => {
-  await mongoose.connection.close()
-  })
 })
+
+describe('Blog List Tests, step 3', () => {
+const initialBlogs = [
+  {
+    title: 'Go To Statement Considered Harmful',
+    author: 'Edsger W. Dijkstra',
+    url: 'http://example.com/1',
+    likes: 5,
+  },
+  {
+    title: 'Canonical string reduction',
+    author: 'Edsger W. Dijkstra',
+    url: 'http://example.com/2',
+    likes: 12,
+  }
+]
+  before(async () => {
+    await Blog.deleteMany({})
+    await Blog.insertMany(initialBlogs)
+  })
+    
+   test.only('a valid blog can be added', async () => {
+    const newBlog = {
+      title: 'Fullstack open',
+      author: 'University of helsinki',
+      url: 'http://fulstackopen.com',
+      likes: 33,
+    }
+     const response = await api 
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+// in order to verify the content of the newly added blog post is 
+// saved correctly to the database is the following section
+     const  getResponse = await api.get('/api/blogs')
+     assert.strictEqual(getResponse.body.length, initialBlogs.length + 1)
+      const titles = getResponse.body.map(b => b.title)
+      assert.ok(titles.includes('Fullstack open'))
+   
+   })
+   after(async () => {
+   await mongoose.connection.close()
+   })
+    })
