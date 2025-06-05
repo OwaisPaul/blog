@@ -27,7 +27,7 @@ blogsRouter.post('/', (request, response, next) => {
             title: body.title,
             author: body.author,
             url: body.url,
-            likes: body.likes || 0,
+            likes: body.likes ?? 0, // this sets default to 0 if likes are absent undefined
            })
 
     blog.save()
