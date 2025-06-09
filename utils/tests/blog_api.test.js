@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../../app')
 const Blog = require('../../models/blog')
+const listHelper = require('../../utils/list_helper')
 
 const api = supertest(app)
 
@@ -317,7 +318,7 @@ const initialBlogs = [
       .expect(201)
       .expect('Content-Type', /application\/json/)
 // in order to verify the content of the newly added blog post is 
-// saved correctly to the database is the following section
+// saved correctly to the database 
      const  getResponse = await api.get('/api/blogs')
      assert.strictEqual(getResponse.body.length, initialBlogs.length + 1)
       const titles = getResponse.body.map(b => b.title)
@@ -327,19 +328,11 @@ const initialBlogs = [
     })
 
     describe('Blog List Tests, step 4', () => {
-      const initialBlogs = [
-  {
-    title: 'Go To Statement Considered Harmful',
-    author: 'Edsger W. Dijkstra',
-    url: 'http://example.com/1',
-    likes: 5,
-  }
-] 
- before(async () => {
+   before(async () => {
   await Blog.deleteMany({})
  })
 
-  test.only('if likes property is missing, it defaults to 0', async () => {
+  test('if likes property is missing, it defaults to 0', async () => {
     const newBlog = {
       title: 'jabbar',
       author: 'ram',
@@ -353,7 +346,66 @@ const initialBlogs = [
           .expect('Content-Type', /application\/json/)
           assert.strictEqual(response.body.likes, 0)
   })  
-after(async() => {
+    })
+
+    describe('Blog List tests, step 5', () => {
+      before(async () => {
+  await Blog.deleteMany({})
+ })
+  
+   test('if the title/url is missing respond with 400', async() => {
+     const newBlog = {
+        // title: 'freecodeCamp',
+        author: 'Quincy Larson',
+        // url: 'http://freecodeCamp.com',
+        likes: 22,
+      }
+      const response = await api
+          .post('/api/blogs')
+          .send(newBlog)
+          .expect(400)
+          .expect('Content-Type', /application\/json/)  
+   })
+      })
+
+    describe('Blog List Expansions, step1', () => {
+      const newBlog = {
+        title: 'blog',
+        author: 'bob',
+        url: 'http://delete.me',
+        likes: 10
+      }
+      
+      let blogId = null
+
+      before(async () => {
+        await Blog.deleteMany({})
+
+        const result = await api
+          .post('/api/blogs')
+          .send(newBlog)
+          .expect(201)
+          .expect('Content-Type', /application\/json/)
+
+          blogId = result.body.id
+      })
+      test.only('successfully deletes a blog by valid id', async() => {
+         await api
+            .delete(`/api/blogs/${blogId}`)
+            .expect(204)
+            
+
+            const response = await api.get('/api/blogs')
+            const ids = response.body.map(b => b.id ?? b._id) // fallback to _id if id not present
+
+            assert.ok(!ids.includes(blogId), 'Blog ID should not exist after deletion')
+      })
+      test.only(' when blog does not exist', async () => {
+        await api
+          .delete(`/api/blogs/${blogId}`) // blog already deleted in previous test
+          .expect(404)
+      })
+         after(async() => {
 await mongoose.connection.close()
 })
     })

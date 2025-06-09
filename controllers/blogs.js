@@ -29,6 +29,9 @@ blogsRouter.post('/', (request, response, next) => {
             url: body.url,
             likes: body.likes ?? 0, // this sets default to 0 if likes are absent undefined
            })
+if (!body.title || !body.url) {
+  return response.status(400).json({ error: 'title or url missing' })
+}
 
     blog.save()
         .then(savedBlog => {
@@ -36,14 +39,19 @@ blogsRouter.post('/', (request, response, next) => {
         })
         .catch(error => next(error))
     })
-
-    blogsRouter.delete('/:id', (request, response, next) => {
-        Blog.findByIdAndDelete(request.params.id)
-          .then(() => {
-            response.status(204).end()
-          })
-          .catch(error => next(error))
-    })
+   // the following is used to delete a single resource
+    blogsRouter.delete('/:id', async (request, response) => {
+  try {
+    const deleted = await Blog.findByIdAndDelete(request.params.id)
+    if (deleted) {
+      response.status(204).end()
+    } else {
+      response.status(404).json({ error: 'blog not found' })
+    }
+  } catch (error) {
+    response.status(400).json({ error: 'malformatted id' })
+  }
+})
 
     blogsRouter.put('/:id', (request, response, next) => {
         const { title, author, url, likes} = request.body
