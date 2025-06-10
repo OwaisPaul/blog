@@ -389,7 +389,7 @@ const initialBlogs = [
 
           blogId = result.body.id
       })
-      test.only('successfully deletes a blog by valid id', async() => {
+      test('successfully deletes a blog by valid id', async() => {
          await api
             .delete(`/api/blogs/${blogId}`)
             .expect(204)
@@ -400,12 +400,53 @@ const initialBlogs = [
 
             assert.ok(!ids.includes(blogId), 'Blog ID should not exist after deletion')
       })
-      test.only(' when blog does not exist', async () => {
+      test(' when blog does not exist', async () => {
         await api
           .delete(`/api/blogs/${blogId}`) // blog already deleted in previous test
           .expect(404)
       })
-         after(async() => {
-await mongoose.connection.close()
+  
+    })
+
+    describe('Blog List Expansions, step 2', () => {
+      let blogToUpdate
+
+      before(async () => {
+        await Blog.deleteMany({})
+
+        const blog = new Blog({
+          title: 'book',
+          author: 'nietzsche',
+          url: 'http://book.com',
+          likes: 44
+        })
+
+        blogToUpdate = await blog.save()
+
+      })
+
+      test.only('updates likes in a blog', async () => {
+        const newData = {
+          likes: 50
+        }
+
+          const response = await api
+              .put(`/api/blogs/${blogToUpdate.id}`)
+              .send(newData)
+              .expect(200)
+              .expect('Content-Type', /application\/json/)
+
+          assert.strictEqual(response.body.likes, 50)
+      })
+      test.only('return 404 if blog does not exist', async () => {
+        const notThereId = new mongoose.Types.ObjectId()
+
+        await api
+            .put(`/api/blogs/${notThereId}`)
+            .send({likes: 70})
+            .expect(404)
+      })
+       after(async() => {
+         await mongoose.connection.close()
 })
     })
