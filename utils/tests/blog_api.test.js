@@ -425,7 +425,7 @@ const initialBlogs = [
 
       })
 
-      test.only('updates likes in a blog', async () => {
+      test('updates likes in a blog', async () => {
         const newData = {
           likes: 50
         }
@@ -438,7 +438,7 @@ const initialBlogs = [
 
           assert.strictEqual(response.body.likes, 50)
       })
-      test.only('return 404 if blog does not exist', async () => {
+      test('return 404 if blog does not exist', async () => {
         const notThereId = new mongoose.Types.ObjectId()
 
         await api
