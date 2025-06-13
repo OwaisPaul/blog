@@ -7,6 +7,11 @@ const blogSchema = new mongoose.Schema({
   author: String,
   url: String,
   likes: Number,
+  // the following defines that the blog contains information about the user who created it
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 })
 
 blogSchema.set('toJSON', {
