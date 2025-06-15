@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
     name: String,
     passwordHash: String,
     // the ids of the blogs are stored within the user document as an array of Mongo ids
+    // user has an array of references to all the notes created by them
     blogs: [
         {
             type: mongoose.Schema.Types.ObjectId,
