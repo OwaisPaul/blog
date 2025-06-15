@@ -5,6 +5,7 @@ const supertest = require('supertest')
 const app = require('../../app')
 const Blog = require('../../models/blog')
 const listHelper = require('../../utils/list_helper')
+const User = require('../../models/user')
 
 const api = supertest(app)
 
@@ -445,6 +446,115 @@ const initialBlogs = [
             .put(`/api/blogs/${notThereId}`)
             .send({likes: 70})
             .expect(404)
+      })
+    
+    })
+
+    describe('blog list expansion step 4 tests', () => {
+      before(async () => {
+        await User.deleteMany({})
+
+        const newUser = new User({
+          username: 'Ada',
+          name: 'Ada Lovelace',
+          passwordHash: 'w0css000'
+        })
+
+   await newUser.save()
+
+      })
+
+      test.only('fails with short username', async () => {
+        const user = {
+          username: 'we',
+          name: 'Them',
+          password: 'they'
+        }
+
+        const response = await api
+              .post('/api/users')
+              .send(user)
+              .expect(400)
+              .expect('Content-Type', /application\/json/)
+
+            assert.strictEqual(response.body.error, 'Username must be at least 3 characters long')
+      })
+      test.only('fails with short password', async () => {
+        const user = {
+          username: 'They',
+          name: 'There',
+          password: 'Hi'
+        }
+
+        const response = await api
+              .post('/api/users')
+              .send(user)
+              .expect(400)
+              .expect('Content-Type', /application\/json/)
+          
+        assert.strictEqual(response.body.error, 'Password must be at least 3 characters long')
+      })
+
+      test.only('fails with missing username', async () => {
+        const user = {
+          name: 'without username',
+          password: 'sunday'
+        }
+
+        const response = await api
+              .post('/api/users')
+              .send(user)
+              .expect(400)
+              .expect('Content-Type', /application\/json/)
+
+          assert.match(response.body.error, /username/i)
+      })
+     
+test.only('fails with missing password', async() => {
+  const user = {
+    username: 'Riyal',
+    name: 'Riyal iran',
+  }
+
+      const response = await api
+              .post('/api/users')
+              .send(user)
+              .expect(400)
+              .expect('Content-Type', /application\/json/)
+        
+        assert.match(response.body.error, /password/i)
+})
+      test.only('username already existing', async() => {
+        const user = {
+          username: 'Ada',
+          name: 'cheater',
+          password: 'cool'
+        }
+
+        const response = await api 
+             .post('/api/users')
+             .send(user)
+             .expect(400)
+             .expect('Content-Type', /application\/json/)
+
+        assert.match(response.body.error, /unique/i)
+
+      })
+
+      test.only('successful test with valid user', async() => {
+            const user = {
+              username: 'Paul',
+              name: 'Owais',
+              password: 'Trenz'
+            }
+            const response = await api
+                .post('/api/users')
+                .send(user)
+                .expect(201)
+                .expect('Content-Type', /application\/json/)
+
+
+            assert.strictEqual(response.body.username, user.username)
       })
        after(async() => {
          await mongoose.connection.close()

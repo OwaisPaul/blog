@@ -13,6 +13,25 @@ usersRouter.get('/', async (request, response) => {
 usersRouter.post('/', async (request, response) => {
     const {username, name, password} = request.body
 
+    // validators 
+    if(!password || password.length < 3) {
+    return response.status(400).json({
+        error: 'Password must be at least 3 characters long'
+    })
+}
+  if(!username || username.length < 3){
+        return response.status(400).json({
+            error: 'Username must be at least 3 characters long'
+        })
+    }
+
+    const userPresent = await User.findOne({ username })
+    if(userPresent) {
+        return response.status(400).json({
+            error: 'Username must be unique'
+        })
+    }
+
     const saltRounds = 10
     // password is not saved in the database we store the hash of the password
     // generated with the bcrypt.hash function
@@ -23,17 +42,8 @@ usersRouter.post('/', async (request, response) => {
         name,
         passwordHash,
     })
-// if(!password || password.length < 3) {
-//     return response.status(400).json({
-//         error: 'Password must be at least 3 characters long'
-//     })
-// }
-//   if(!username || username.length < 3){
-//         return response.status(400).json({
-//             error: 'Username must be at least 3 characters long'
-//         })
-//     }
-    const savedUser = await user.save()
+
+ const savedUser = await user.save()
 
     response.status(201).json(savedUser)
 })

@@ -19,7 +19,13 @@ const errorHandler = (error, request, response, next) => {
     return response.status(400).send({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
     return response.status(400).json({ error: error.message })
+    // the base class for server-side MongoDB errors.
+    // code 11000 indicates a duplicate key error e.g the username is already taken
+  } else if (error.name === 'MongoServerError' && error.code === 11000) {
+    return response.status(400).json({ error: 'Username must be unique' })
   }
+
+  return response.status(500).json({ error: 'Internal server error' })
 
   next(error)
 }
