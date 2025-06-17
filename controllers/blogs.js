@@ -74,16 +74,31 @@ blogsRouter.post('/', async (request, response, next) => {
    // the following is used to delete a single resource
     blogsRouter.delete('/:id', async (request, response) => {
   try {
-    const deleted = await Blog.findByIdAndDelete(request.params.id)
-    if (deleted) {
-      response.status(204).end()
-    } else {
-      response.status(404).json({ error: 'blog not found' })
+    // verifies the token to get the decodedToken
+    const decodedToken = jwt.verify(request.token, process.env.SECRET)
+    if (!decodedToken.id) {
+        return response.status(401).json({ error: 'token missing or invalid'})
     }
-  } catch (error) {
-    response.status(400).json({ error: 'malformatted id' })
-  }
+    // fetching blog id from the database
+    const blog = await Blog.findById(request.params.id)
+
+    if(!blog) {
+        return response.status(404).json({ error: 'blog not found' })
+    }
+
+    // we will convert blog.user which is an obj to a string to compare with token id
+    if (blog.user.toString() !== decodedToken.id.toString())
+        return response.status(401).json( {error: 'unauthorized: you are not the creator'})
+
+    
+    await Blog.findByIdAndDelete(request.params.id)
+    response.status(204).end()
+
+} catch (error) {
+    next(error)
+}
 })
+
 
     blogsRouter.put('/:id', (request, response, next) => {
         const { title, author, url, likes} = request.body
