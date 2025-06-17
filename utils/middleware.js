@@ -23,6 +23,8 @@ const errorHandler = (error, request, response, next) => {
     // code 11000 indicates a duplicate key error e.g the username is already taken
   } else if (error.name === 'MongoServerError' && error.code === 11000) {
     return response.status(400).json({ error: 'Username must be unique' })
+  } else if (error.name === 'JsonWebTokenError') {
+    return response.status(401).json({error: 'token invalid'})
   }
 
   return response.status(500).json({ error: 'Internal server error' })

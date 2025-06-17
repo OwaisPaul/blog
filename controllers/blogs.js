@@ -3,6 +3,9 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
 const User = require('../models/user')
+const jwt = require('jsonwebtoken')
+const logger = require('../utils/logger')
+
 
 blogsRouter.get('/', async (request, response) => {
     const blogs = await Blog.find({})
@@ -24,12 +27,34 @@ blogsRouter.get('/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-blogsRouter.post('/', async (request, response, next) => {
-    const body = request.body
+const getTokenFrom = request => {
+    const authorization = request.get('authorization')
+        if (authorization && authorization.startsWith('Bearer ')) {
+            return authorization.replace('Bearer ', '')
+        }
+    return null
+}
 
-    //this finds the first user
-    const users = await User.find({})
-    const user = users[0] // first user
+blogsRouter.post('/', async (request, response, next) => {
+    try {
+    const body = request.body
+    const token = getTokenFrom(request)
+// the validity of token is checked with jwt.verify
+    const decodedToken = jwt.verify(token, process.env.SECRET)
+      // if the object decoded from the token does not contain the user's identity
+    if (!decodedToken.id) {
+        return response.status(401).json({
+            error: 'token invalid'
+        })
+    }
+     if (!body.title || !body.url) {
+        return response.status(400).json({error: 'title or url missing'})
+    }
+    //this finds the user
+    const user = await User.findById(decodedToken.id)
+    // //this finds the first user
+    // const users = await User.find({})
+    // const user = users[0] // first user
 
     if (!user) {
         return response.status(400).json({ error: 'No user found'})
@@ -44,23 +69,15 @@ blogsRouter.post('/', async (request, response, next) => {
            })
 
            const savedBlog = await blog.save()
-
            // updating the user's blogs array
-
         user.blogs = user.blogs.concat(savedBlog._id)
         await user.save()
 
         response.status(201).json(savedBlog)
-    
-if (!body.title || !body.url) {
-  return response.status(400).json({ error: 'title or url missing' })
-}
-
-    blog.save()
-        .then(savedBlog => {
-            response.status(201).json(savedBlog)
-        })
-        .catch(error => next(error))
+        } catch(error) {
+            logger.error('Error creating blog')
+            next(error)
+        }
     })
    // the following is used to delete a single resource
     blogsRouter.delete('/:id', async (request, response) => {

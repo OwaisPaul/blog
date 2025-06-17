@@ -7,6 +7,7 @@ const User = require('../models/user')
 loginRouter.post('/', async (request, response) => {
   try {
     const { username, password } = request.body
+    // checks the user in database
     const user = await User.findOne({ username })
 
     // Check if user exists and password is correct
