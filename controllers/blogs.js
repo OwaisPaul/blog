@@ -27,20 +27,12 @@ blogsRouter.get('/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-const getTokenFrom = request => {
-    const authorization = request.get('authorization')
-        if (authorization && authorization.startsWith('Bearer ')) {
-            return authorization.replace('Bearer ', '')
-        }
-    return null
-}
 
 blogsRouter.post('/', async (request, response, next) => {
     try {
-    const body = request.body
-    const token = getTokenFrom(request)
+        const body = request.body
 // the validity of token is checked with jwt.verify
-    const decodedToken = jwt.verify(token, process.env.SECRET)
+    const decodedToken = jwt.verify(request.token, process.env.SECRET)
       // if the object decoded from the token does not contain the user's identity
     if (!decodedToken.id) {
         return response.status(401).json({
