@@ -5,6 +5,8 @@ const Blog = require('../models/blog')
 const User = require('../models/user')
 const jwt = require('jsonwebtoken')
 const logger = require('../utils/logger')
+const { tokenExtractor, userExtractor } = require('../utils/middleware')
+
 
 
 blogsRouter.get('/', async (request, response) => {
@@ -16,40 +18,28 @@ blogsRouter.get('/', async (request, response) => {
     })
 
 blogsRouter.get('/:id', (request, response, next) => {
-    Blog.findById(request.params.id)
-    .then(blog => {
-        if(blog){
-            response.json(blog)
-        } else {
-            response.status(404).end()
-        }
-    })
-    .catch(error => next(error))
+    blogsRouter.get('/:id', async (request, response, next) => {
+  try {
+    const blog = await Blog.findById(request.params.id)
+    if (blog) {
+      response.json(blog)
+    } else {
+      response.status(404).end()
+    }
+  } catch (error) {
+    next(error)
+  }
+})
 })
 
 
-blogsRouter.post('/', async (request, response, next) => {
+blogsRouter.post('/', tokenExtractor, userExtractor, async (request, response, next) => {
     try {
         const body = request.body
-// the validity of token is checked with jwt.verify
-    const decodedToken = jwt.verify(request.token, process.env.SECRET)
-      // if the object decoded from the token does not contain the user's identity
-    if (!decodedToken.id) {
-        return response.status(401).json({
-            error: 'token invalid'
-        })
-    }
+        const user = request.user
+   
      if (!body.title || !body.url) {
         return response.status(400).json({error: 'title or url missing'})
-    }
-    //this finds the user
-    const user = await User.findById(decodedToken.id)
-    // //this finds the first user
-    // const users = await User.find({})
-    // const user = users[0] // first user
-
-    if (!user) {
-        return response.status(400).json({ error: 'No user found'})
     }
 
     const blog = new Blog({
@@ -72,13 +62,9 @@ blogsRouter.post('/', async (request, response, next) => {
         }
     })
    // the following is used to delete a single resource
-    blogsRouter.delete('/:id', async (request, response) => {
+    blogsRouter.delete('/:id', tokenExtractor, userExtractor, async (request, response, next) => {
   try {
-    // verifies the token to get the decodedToken
-    const decodedToken = jwt.verify(request.token, process.env.SECRET)
-    if (!decodedToken.id) {
-        return response.status(401).json({ error: 'token missing or invalid'})
-    }
+     const user = request.user
     // fetching blog id from the database
     const blog = await Blog.findById(request.params.id)
 
