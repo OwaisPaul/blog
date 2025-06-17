@@ -1,4 +1,8 @@
 
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const User = require('../models/user')
+
 const dummy = (blogs) => {
     return 1
 }
@@ -63,11 +67,26 @@ const mostBlogs = (blogs) => {
         }
      }
 
+     // function to create a user and return a valid token
+     const getAuthtoken = async () => {
+        const passwordHash = await bcrypt.hash('diana', 10)
+        const user = new User({ username: 'testuser', passwordHash})
+
+        await user.save()
+
+        const userForToken = {
+            username: user.username,
+            id: user._id,
+        }
+        return jwt.sign(userForToken, process.env.SECRET)
+     }
+
 
 module.exports = {
     dummy,
     totalLikes,
     favoriteBlog,
     mostBlogs,
-    mostLikes
+    mostLikes,
+    getAuthtoken
 }

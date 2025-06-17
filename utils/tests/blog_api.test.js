@@ -306,27 +306,29 @@ const initialBlogs = [
     await Blog.insertMany(initialBlogs) // adds initial known data
   })
     
-   test('a valid blog can be added', async () => {
-    const newBlog = {
-      title: 'Fullstack open',
-      author: 'University of helsinki',
-      url: 'http://fulstackopen.com',
-      likes: 33,
-    }
-     const response = await api 
-      .post('/api/blogs')
-      .send(newBlog)
-      .expect(201)
-      .expect('Content-Type', /application\/json/)
-// in order to verify the content of the newly added blog post is 
-// saved correctly to the database 
-     const  getResponse = await api.get('/api/blogs')
-     assert.strictEqual(getResponse.body.length, initialBlogs.length + 1)
-      const titles = getResponse.body.map(b => b.title)
-      assert.ok(titles.includes('Fullstack open'))
-   
-   })
-    })
+   test('a valid blog can be added with token', async () => {
+  const token = await getAuthToken()
+
+  const newBlog = {
+    title: 'Authorized Blog',
+    author: 'Auth Tester',
+    url: 'http://testblog.com',
+    likes: 7,
+  }
+
+  await api
+    .post('/api/blogs')
+    .set('Authorization', `Bearer ${token}`) 
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+
+  const blogsAtEnd = await helper.blogsInDb()
+  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1)
+
+  const titles = blogsAtEnd.map(b => b.title)
+  expect(titles).toContain('Authorized Blog')
+})
 
     describe('Blog List Tests, step 4', () => {
    before(async () => {
@@ -348,7 +350,7 @@ const initialBlogs = [
           assert.strictEqual(response.body.likes, 0)
   })  
     })
-
+  })
     describe('Blog List tests, step 5', () => {
       before(async () => {
   await Blog.deleteMany({})
@@ -556,6 +558,25 @@ test.only('fails with missing password', async() => {
 
             assert.strictEqual(response.body.username, user.username)
       })
+    })
+    describe('Missing token', () => {
+      test('adding a blog fails with 401 if token is not provided', async () => {
+  const newBlog = {
+    title: 'Unauthorized Blog',
+    author: 'Intruder',
+    url: 'http://unauthorized.com',
+    likes: 1,
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(401)
+
+  const blogsAtEnd = await helper.blogsInDb()
+  const titles = blogsAtEnd.map(b => b.title)
+  expect(titles).not.toContain('Unauthorized Blog')
+})
        after(async() => {
          await mongoose.connection.close()
 })
